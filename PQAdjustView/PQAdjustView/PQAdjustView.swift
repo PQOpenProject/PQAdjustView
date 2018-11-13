@@ -30,6 +30,18 @@ open class PQAdjustView: UIView {
             changeView.frame = CGRect(x: 0, y: height, width: changeView.bounds.width, height: self.frame.height - height)
         }
     }
+    /// borderColor default .gray
+    public var borderColor: UIColor = .gray {
+        didSet {
+            maskLayer.borderColor = borderColor.cgColor
+        }
+    }
+    /// borderWidth default 1
+    public var borderWidth: CGFloat = 0 {
+        didSet {
+            maskLayer.borderWidth = borderWidth
+        }
+    }
     
     /// default is .white
     public var showType: PQAdjustViewShowType = .white {
@@ -104,6 +116,8 @@ open class PQAdjustView: UIView {
         layer.frame = bounds
         let cornerRadius: CGFloat = frame.width - 20
         layer.path = UIBezierPath(roundedRect: CGRect(x: 10, y: 0, width: frame.width - 20, height: frame.height), cornerRadius: cornerRadius * 0.2).cgPath
+        layer.borderWidth = self.borderWidth
+        layer.borderColor = self.borderColor.cgColor
         return layer
     }()
     
