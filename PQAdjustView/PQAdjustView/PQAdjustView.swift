@@ -186,7 +186,6 @@ private extension PQAdjustView {
     }
     
     private func viewFrameChange(_ view: UIView) {
-        print(lastTimeinterval)
         let value = view.frame.height / imageViewStartHeightMax
         if let rate = Double(String(format: "%.2f", value)) {
             changeBlock?(CGFloat(rate))
