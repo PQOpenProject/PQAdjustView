@@ -24,12 +24,7 @@ import UIKit
     /// default is 0.1s
     @objc open var dueTime: TimeInterval = 0.1
     /// default is 0
-    @objc public var progress: CGFloat = 0.5 {
-        didSet {
-            let height = progress * self.frame.height
-            changeView.frame = CGRect(x: 0, y: height, width: changeView.bounds.width, height: self.frame.height - height)
-        }
-    }
+    @objc public var progress: CGFloat = 0.5
     /// borderColor default .gray
     @objc public var borderColor: UIColor = .gray {
         didSet {
@@ -98,6 +93,7 @@ import UIKit
             changeView.frame = bounds
             let type = showType
             self.showType = type
+            changeView.frame.origin.y = (1 - progress) * bounds.height
         }
     }
     
@@ -184,7 +180,8 @@ private extension PQAdjustView {
     }
     
     private func viewFrameChange(_ view: UIView) {
-        let value = view.frame.origin.y / bounds.height
+        let value = 1 - (changeView.frame.origin.y / bounds.height)
+        progress = value
         if let rate = Double(String(format: "%.2f", 1 - value)) {
             changeBlock?(CGFloat(rate))
             changeColorBlock?(CGFloat(rate), color)
@@ -217,7 +214,7 @@ extension PQAdjustView {
             
             let currentTimeinterval = CFAbsoluteTimeGetCurrent()
             let offsetTime = currentTimeinterval - lastTimeinterval
-            color = UIColor(hue: 1 - ((bounds.height - changeView.frame.origin.y) / bounds.height), saturation: 1, brightness: 1, alpha: 1)
+            color = UIColor(hue: (bounds.height - changeView.frame.origin.y) / bounds.height, saturation: 1, brightness: 1, alpha: 1)
             
             
             if offsetTime >= dueTime {
