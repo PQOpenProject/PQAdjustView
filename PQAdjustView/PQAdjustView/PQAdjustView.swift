@@ -8,13 +8,13 @@
 
 import UIKit
 
-public enum PQAdjustViewShowType: Int {
+@objc public enum PQAdjustViewShowType: Int {
     case white = 0
     case hueWhite
     case rgb
 }
 
-open class PQAdjustView: UIView {
+@objc open class PQAdjustView: UIView {
     // MARK: - public typealias
     public typealias PQAdjustChangeBlock = (CGFloat) -> ()
     public typealias PQAdjustChangeColorBlock = (CGFloat, UIColor?) -> ()
@@ -22,29 +22,29 @@ open class PQAdjustView: UIView {
     // MARK: - public property
     
     /// default is 0.1s
-    open var dueTime: TimeInterval = 0.1
+    @objc open var dueTime: TimeInterval = 0.1
     /// default is 0
-    public var progress: CGFloat = 0.5 {
+    @objc public var progress: CGFloat = 0.5 {
         didSet {
             let height = progress * self.frame.height
             changeView.frame = CGRect(x: 0, y: height, width: changeView.bounds.width, height: self.frame.height - height)
         }
     }
     /// borderColor default .gray
-    public var borderColor: UIColor = .gray {
+    @objc public var borderColor: UIColor = .gray {
         didSet {
             maskLayer.borderColor = borderColor.cgColor
         }
     }
     /// borderWidth default 1
-    public var borderWidth: CGFloat = 0 {
+    @objc public var borderWidth: CGFloat = 0 {
         didSet {
             maskLayer.borderWidth = borderWidth
         }
     }
     
     /// default is .white
-    public var showType: PQAdjustViewShowType = .white {
+    @objc public var showType: PQAdjustViewShowType = .white {
         didSet {
             if showType == .white {
                 imageView.image = UIImage.adjust_drawImage(size: bounds.size, color: UIColor.lightText)
@@ -92,7 +92,13 @@ open class PQAdjustView: UIView {
     
     override open func layoutSubviews() {
         super.layoutSubviews()
-        layer.mask = maskLayer
+        if layer.mask == nil {
+            layer.mask = maskLayer
+            imageView.frame = bounds
+            changeView.frame = bounds
+            let type = showType
+            self.showType = type
+        }
     }
     
     open override func setValue(_ value: Any?, forKey key: String) {
@@ -133,15 +139,9 @@ open class PQAdjustView: UIView {
     }()
     
     private var gradientLayer: CAGradientLayer = CAGradientLayer()
-    
-    private var imageViewStartFrameYMax: CGFloat = 0
-    private var imageViewStartHeightMax: CGFloat = 0
-    private var imageViewStartFrameY: CGFloat = 0
-    private var imageViewStartHeight: CGFloat = 0
     private var minValue: CGFloat = 0
     private var lastTimeinterval: TimeInterval = CFAbsoluteTimeGetCurrent()
     private var color: UIColor?
-    private var lastRate: CGFloat = 0
     
     private var changeBlock: PQAdjustChangeBlock?
     private var changeColorBlock: PQAdjustChangeColorBlock?
@@ -150,12 +150,12 @@ open class PQAdjustView: UIView {
 
 
 // MARK: - public method
-public extension PQAdjustView {
-    public func change(_ block: PQAdjustChangeBlock?) {
+@objc public extension PQAdjustView {
+    @objc public func change(_ block: PQAdjustChangeBlock?) {
         self.changeBlock = block
     }
     
-    public func changColor(_ block: PQAdjustChangeColorBlock?) {
+    @objc public func changColor(_ block: PQAdjustChangeColorBlock?) {
         self.changeColorBlock = block
     }
 }
@@ -169,8 +169,6 @@ private extension PQAdjustView {
         addGestureRecognizer(panGestureRecognizer)
         addSubview(imageView)
         addSubview(changeView)
-        imageViewStartFrameYMax = bounds.origin.y
-        imageViewStartHeightMax = bounds.height
     }
     
     private func drawLayer(_ colors: [CGColor], locations: [NSNumber]) {
@@ -186,8 +184,8 @@ private extension PQAdjustView {
     }
     
     private func viewFrameChange(_ view: UIView) {
-        let value = view.frame.height / imageViewStartHeightMax
-        if let rate = Double(String(format: "%.2f", value)) {
+        let value = view.frame.origin.y / bounds.height
+        if let rate = Double(String(format: "%.2f", 1 - value)) {
             changeBlock?(CGFloat(rate))
             changeColorBlock?(CGFloat(rate), color)
         }
@@ -200,8 +198,6 @@ extension PQAdjustView {
         
         switch panGesture.state {
         case .began:
-            imageViewStartFrameY = changeView.frame.origin.y
-            imageViewStartHeight = changeView.frame.height
             UIView.animate(withDuration: 0.1, animations: {
                 self.transform = CGAffineTransform(scaleX: 1.025, y: 1.025)
             }, completion: { _ in
@@ -210,35 +206,26 @@ extension PQAdjustView {
                 }, completion: nil)
             })
         case .changed:
-            let translation = panGesture.translation(in: changeView.superview)
-            let rect = CGRect(x: changeView.frame.origin.x, y: imageViewStartFrameY + translation.y, width: changeView.frame.width, height: imageViewStartHeight - translation.y)
-            if rect.origin.y < imageViewStartHeightMax + imageViewStartFrameYMax {
-                changeView.frame = CGRect(x: changeView.frame.origin.x, y: imageViewStartFrameY + translation.y, width: changeView.frame.width, height: imageViewStartHeightMax - translation.y)
-            }
-            if (rect.origin.y < imageViewStartFrameYMax) {
-                changeView.frame = CGRect(x: changeView.frame.origin.x, y: imageViewStartFrameYMax, width: changeView.frame.width, height: imageViewStartHeightMax)
+            let point = panGesture.location(in: panGesture.view)
+            if point.y <= 0 {
+                changeView.frame.origin.y = 0
+            } else if point.y >= bounds.height {
+                changeView.frame.origin.y = bounds.height
             } else {
-                changeView.frame = CGRect(x: changeView.frame.origin.x, y: imageViewStartFrameY + translation.y, width: changeView.frame.width, height: imageViewStartHeight - translation.y)
-            }
-            
-            if (rect.origin.y > imageViewStartHeightMax + imageViewStartFrameYMax - minValue) {
-                changeView.frame = CGRect(x: changeView.frame.origin.x, y: imageViewStartHeightMax + imageViewStartFrameYMax - minValue, width: changeView.frame.width, height: minValue)
+                changeView.frame.origin.y = point.y
             }
             
             let currentTimeinterval = CFAbsoluteTimeGetCurrent()
             let offsetTime = currentTimeinterval - lastTimeinterval
-            color = UIColor(hue: 1 - ((imageViewStartHeightMax - changeView.frame.height) / imageViewStartHeightMax), saturation: 1, brightness: 1, alpha: 1)
+            color = UIColor(hue: 1 - ((bounds.height - changeView.frame.origin.y) / bounds.height), saturation: 1, brightness: 1, alpha: 1)
             
             
             if offsetTime >= dueTime {
                 lastTimeinterval = currentTimeinterval
                 viewFrameChange(changeView)
             }
-            
-        case .ended:
+        case .ended, .cancelled, .failed, .possible:
             viewFrameChange(changeView)
-        case .cancelled, .failed, .possible:
-            break
         }
         
     }
