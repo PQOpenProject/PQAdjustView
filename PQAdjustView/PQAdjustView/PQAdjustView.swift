@@ -197,11 +197,7 @@ extension PQAdjustView {
         case .began:
             UIView.animate(withDuration: 0.1, animations: {
                 self.transform = CGAffineTransform(scaleX: 1.025, y: 1.025)
-            }, completion: { _ in
-                UIView.animate(withDuration: 0.15, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.8, options: .curveLinear, animations: {
-                    self.transform = CGAffineTransform.identity
-                }, completion: nil)
-            })
+            }, completion: nil)
         case .changed:
             let point = panGesture.location(in: panGesture.view)
             if point.y <= 0 {
@@ -223,6 +219,9 @@ extension PQAdjustView {
             }
         case .ended, .cancelled, .failed, .possible:
             viewFrameChange(changeView)
+            UIView.animate(withDuration: 0.15, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.8, options: .curveLinear, animations: {
+                self.transform = CGAffineTransform.identity
+            }, completion: nil)
         }
         
     }
